@@ -289,6 +289,9 @@ func getKeysValues(dest any) *KV {
 		} else {
 			name = toSnake(typeOf.Field(cur).Name)
 		}
+		if name == "id" || typeOf.Field(cur).Tag.Get("pri") != "" {
+			continue
+		}
 		value := valueOf.Field(cur).Interface()
 		var strValue = fmt.Sprintf("%v", value)
 		valueKind := reflect.TypeOf(value).Kind()
