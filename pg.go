@@ -13,6 +13,7 @@ import (
 var allows = []reflect.Kind{reflect.Struct, reflect.Slice, reflect.Int, reflect.Int64, reflect.String, reflect.Float64}
 var ErrAllow = fmt.Errorf("query: allow list: reflect.Struct/reflect.Slice/reflect.Int/reflect.Int64/reflect.String/reflect.Float64")
 var ErrInsertAllow = fmt.Errorf("query: allow list: reflect.Struct")
+var ErrUpdateAllow = fmt.Errorf("query: allow list: reflect.Struct")
 
 func Query[T any](ctx context.Context, db *sql.DB, sqlStr string, args ...any) (t *T, err error) {
 	t = new(T)
@@ -104,6 +105,36 @@ func Insert[T any](ctx context.Context, db *sql.DB, dest []T) (newDest []T, err 
 	}
 	return
 }
+
+func Update[T any](ctx context.Context, db *sql.DB, dest []T, where string, args ...any) error {
+	t := new(T)
+	typeOf := reflect.TypeOf(t).Elem()
+	if typeOf.Kind() == reflect.Pointer {
+		return ErrUpdateAllow
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	for _, row := range dest {
+		rowSql := generateUpdate(where, row)
+		stmt, err := tx.Prepare(rowSql)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		_, err = stmt.ExecContext(ctx, args...)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func Delete[T any](ctx context.Context, db *sql.DB, where string, args ...any) error {
 	t := new(T)
 	typeOf := reflect.TypeOf(t).Elem()
@@ -216,8 +247,12 @@ func unmarshalNumOrStr(rows *sql.Rows, dest any) error {
 
 func getTableName(dest any) string {
 	var tableName string
-	valueOf := reflect.ValueOf(dest).Elem()
-	typeOf := reflect.TypeOf(dest).Elem()
+	valueOf := reflect.ValueOf(dest)
+	typeOf := reflect.TypeOf(dest)
+	if typeOf.Kind() == reflect.Pointer {
+		typeOf = typeOf.Elem()
+		valueOf = valueOf.Elem()
+	}
 	if cb := valueOf.MethodByName("TableName"); cb.Kind() == reflect.Func {
 		retList := cb.Call([]reflect.Value{})
 		if retList != nil {
@@ -339,6 +374,41 @@ func generateDelete(sqlStr string, dest any) (newSqlStr string) {
 	}
 	tableName := getTableName(dest)
 	return fmt.Sprintf("DELETE FROM %s WHERE %s", tableName, sqlStr)
+}
+func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
+	parse := regexp.MustCompile(`(?i)DELETE (.*?) `)
+	parseArr := parse.FindAllStringSubmatch(sqlStr, -1)
+	if parseArr != nil {
+		return sqlStr
+	}
+	tableName := getTableName(dest)
+	valueOf := reflect.ValueOf(dest)
+	typeOf := reflect.TypeOf(dest)
+	var sets []string
+	for curField := 0; curField < typeOf.NumField(); curField++ {
+		fieldName := toSnake(typeOf.Field(curField).Name)
+		jsonName := typeOf.Field(curField).Tag.Get("json")
+		if jsonName != "" {
+			fieldName = jsonName
+		}
+		isPrimary := fieldName == "id" || typeOf.Field(curField).Tag.Get("pri") != ""
+		value := valueOf.Field(curField)
+		if isPrimary {
+			if sqlStr == "" {
+				sqlStr = fmt.Sprintf(`%s = %v`, fieldName, value)
+			}
+			continue
+		}
+		var valueStr string
+		if value.Kind() == reflect.String {
+			valueStr = fmt.Sprintf("'%v'", value)
+		} else {
+			valueStr = fmt.Sprintf("%v", value)
+		}
+		sets = append(sets, fmt.Sprintf("%s=%s", fieldName, valueStr))
+	}
+	newSqlStr = fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, strings.Join(sets, ","), sqlStr)
+	return
 }
 
 var savePriFieldMap = map[reflect.Kind]func(value reflect.Value, filedIdx int, lastId int64){
