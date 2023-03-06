@@ -82,22 +82,24 @@ func Insert[T any](ctx context.Context, db *sql.DB, dest []T) (newDest []T, err 
 		kv := getKeysValues(row)
 		fields = kv.Key
 		values = fmt.Sprintf(`(%s)`, kv.Value)
-		sqlStr := fmt.Sprintf(`INSERT INTO %s(%s) VALUES %s`, tableName, fields, values)
+		sqlStr := fmt.Sprintf(`INSERT INTO %s(%s) VALUES %s RETURNING id`, tableName, fields, values)
 		stmt, err := tx.Prepare(sqlStr)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		result, err := stmt.ExecContext(ctx)
+		result, err := stmt.QueryContext(ctx)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
 		}
-		lastId, err := result.LastInsertId()
-		if err != nil {
-			tx.Rollback()
-			return nil, err
-		}
+		var lastId int64
+		result.Scan(&lastId)
+		//only for mysql
+		//lastId, err := result.LastInsertId()
+		//if err != nil {
+		//	return nil, err
+		//}
 		savePrimaryKey(&row, lastId)
 		newDest = append(newDest, row)
 	}
