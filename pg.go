@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var allows = []reflect.Kind{reflect.Struct, reflect.Slice, reflect.Int, reflect.Int64, reflect.String, reflect.Float64}
@@ -181,10 +182,11 @@ func unmarshalStruct(rows *sql.Rows, dest any) error {
 			values = append(values, reflect.New(field.Type()).Interface())
 		}
 	}
-	rows.Next()
-	err = rows.Scan(values...)
-	if err != nil {
-		return err
+	for rows.Next() {
+		err = rows.Scan(values...)
+		if err != nil {
+			return err
+		}
 	}
 	for i, column := range fieldNames {
 		v := reflect.ValueOf(values[i]).Elem()
@@ -287,10 +289,23 @@ func getKeysValues(dest any) *KV {
 		}
 		value := valueOf.Field(cur).Interface()
 		var strValue = fmt.Sprintf("%v", value)
-		if reflect.TypeOf(value).Kind() == reflect.String {
+		valueKind := reflect.TypeOf(value).Kind()
+		if valueKind == reflect.String {
 			strValue = fmt.Sprintf("'%v'", value)
 		}
-		keys = append(keys, fmt.Sprintf("`%s`", name))
+		if valueKind == reflect.Struct {
+			if t, ok := value.(time.Time); ok {
+				if t.IsZero() {
+					strValue = "DEFAULT"
+				} else {
+					strValue = fmt.Sprintf("'%v'", value)
+				}
+			}
+		}
+		if valueKind == reflect.Pointer {
+			continue
+		}
+		keys = append(keys, fmt.Sprintf("%s", name))
 		values = append(values, strValue)
 	}
 	return &KV{
