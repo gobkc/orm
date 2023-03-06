@@ -13,7 +13,7 @@ import (
 var allows = []reflect.Kind{reflect.Struct, reflect.Slice, reflect.Int, reflect.Int64, reflect.String, reflect.Float64}
 var ErrAllow = fmt.Errorf("query: allow list: reflect.Struct/reflect.Slice/reflect.Int/reflect.Int64/reflect.String/reflect.Float64")
 var ErrInsertAllow = fmt.Errorf("query: allow list: reflect.Struct")
-var ErrUpdateAllow = fmt.Errorf("query: allow list: reflect.Struct")
+var ErrUpdateAllow = ErrInsertAllow
 
 func Query[T any](ctx context.Context, db *sql.DB, sqlStr string, args ...any) (t *T, err error) {
 	t = new(T)
