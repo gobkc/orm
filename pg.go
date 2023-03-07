@@ -26,6 +26,11 @@ func Query[T any](ctx context.Context, db *sql.DB, sqlStr string, args ...any) (
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	kind := reflect.TypeOf(t).Elem().Kind()
 	pass := false
 	for _, allow := range allows {
@@ -241,8 +246,11 @@ func unmarshalSlice(rows *sql.Rows, dest any) error {
 }
 
 func unmarshalNumOrStr(rows *sql.Rows, dest any) error {
-	rows.Next()
-	return rows.Scan(dest)
+	for {
+		rows.Next()
+		return rows.Scan(dest)
+	}
+	return nil
 }
 
 func getTableName(dest any) string {
