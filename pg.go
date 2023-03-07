@@ -1,10 +1,9 @@
-package orm
+package main
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 	"regexp"
 	"strings"
@@ -88,13 +87,10 @@ func Insert[T any](ctx context.Context, db *sql.DB, dest []T) (newDest []T, err 
 			tx.Rollback()
 			return nil, err
 		}
-		result, err := stmt.QueryContext(ctx)
-		if err != nil {
-			tx.Rollback()
+		var lastId int64
+		if err = stmt.QueryRowContext(ctx).Scan(&lastId); err != nil {
 			return nil, err
 		}
-		var lastId int64
-		result.Scan(&lastId)
 		//only for mysql
 		//lastId, err := result.LastInsertId()
 		//if err != nil {
@@ -420,7 +416,7 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 			continue
 		}
 		var valueStr string
-		if value.Kind() == reflect.String {
+		if value.Kind() == reflect.String || value.Kind() == reflect.Struct {
 			valueStr = fmt.Sprintf("'%v'", value)
 		} else {
 			valueStr = fmt.Sprintf("%v", value)

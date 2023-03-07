@@ -2,4 +2,4 @@ module github.com/gobkc/orm
 
 go 1.18
 
-require github.com/go-sql-driver/mysql v1.7.0
+require github.com/lib/pq v1.10.7
