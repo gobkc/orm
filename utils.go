@@ -192,6 +192,6 @@ func ConvertObject[Object any, D []byte | string](dest D) *Object {
 }
 
 func Int[T int | int64 | int32](dest string) T {
-	i, _ := strconv.ParseInt(dest, 64, 10)
+	i, _ := strconv.ParseInt(dest, 10, 64)
 	return T(i)
 }
