@@ -185,8 +185,8 @@ func ConvertJsonb[T []any | any](list T) string {
 	return js
 }
 
-func ConvertObject[T comparable, D []byte | string](dest D) *T {
-	t := new(T)
+func ConvertObject[Object any, D []byte | string](dest D) *Object {
+	t := new(Object)
 	json.Unmarshal([]byte(dest), t)
 	return t
 }
