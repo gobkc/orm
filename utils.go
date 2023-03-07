@@ -184,3 +184,14 @@ func ConvertJsonb[T []any | any](list T) string {
 	}
 	return js
 }
+
+func ConvertObject[T comparable, D []byte | string](dest D) *T {
+	t := new(T)
+	json.Unmarshal([]byte(dest), t)
+	return t
+}
+
+func Int[T int | int64 | int32](dest string) T {
+	i, _ := strconv.ParseInt(dest, 64, 10)
+	return T(i)
+}
