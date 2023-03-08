@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -18,6 +19,7 @@ var ErrUpdateAllow = ErrInsertAllow
 func Query[T any](ctx context.Context, db *sql.DB, sqlStr string, args ...any) (t *T, err error) {
 	t = new(T)
 	sqlStr, args = parseSqlIn(sqlStr, args)
+	defer outputSql(sqlStr, args)
 	stmt, err := db.PrepareContext(ctx, sqlStr)
 	if err != nil {
 		return nil, err
@@ -87,6 +89,7 @@ func Insert[T any](ctx context.Context, db *sql.DB, dest []T) (newDest []T, err 
 		fields = kv.Key
 		values = fmt.Sprintf(`(%s)`, kv.Value)
 		sqlStr := fmt.Sprintf(`INSERT INTO %s(%s) VALUES %s RETURNING id`, tableName, fields, values)
+		outputSql(sqlStr, nil)
 		stmt, err := tx.Prepare(sqlStr)
 		if err != nil {
 			tx.Rollback()
@@ -127,6 +130,7 @@ func Update[T any](ctx context.Context, db *sql.DB, dest []T, where string, args
 			tx.Rollback()
 			return err
 		}
+		outputSql(rowSql, args)
 		_, err = stmt.ExecContext(ctx, args...)
 		if err != nil {
 			tx.Rollback()
@@ -147,7 +151,7 @@ func Delete[T any](ctx context.Context, db *sql.DB, where string, args ...any) e
 	}
 	where = generateDelete(where, t)
 	where, args = parseSqlIn(where, args)
-
+	defer outputSql(where, args)
 	stmt, err := db.PrepareContext(ctx, where)
 	if err != nil {
 		return err
@@ -438,6 +442,17 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 	}
 	newSqlStr = fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, strings.Join(sets, ","), sqlStr)
 	return
+}
+
+func outputSql(s string, args []any) {
+	for i, arg := range args {
+		v := fmt.Sprintf("%v", arg)
+		if reflect.TypeOf(arg).Kind() == reflect.String || reflect.TypeOf(arg).Kind() == reflect.Struct {
+			v = fmt.Sprintf("'%v'", arg)
+		}
+		s = strings.Replace(s, "?", v, i+1)
+	}
+	log.Printf("[ORM INFO]\t %s \n", s)
 }
 
 var savePriFieldMap = map[reflect.Kind]func(value reflect.Value, filedIdx int, lastId int64){
