@@ -454,9 +454,9 @@ func outputSql(s string, args []any) {
 		}
 		cur := args[argsIndex]
 		if reflect.TypeOf(cur).Kind() == reflect.String || reflect.TypeOf(cur).Kind() == reflect.Struct {
-			cur = fmt.Sprintf("'%v' ", cur)
+			cur = fmt.Sprintf("'%v'", cur)
 		} else {
-			cur = fmt.Sprintf("%v ", cur)
+			cur = fmt.Sprintf("%v", cur)
 		}
 		argsIndex++
 		return fmt.Sprintf("%v", cur)
