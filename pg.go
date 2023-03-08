@@ -303,7 +303,7 @@ func getKeysValues(dest any) *KV {
 		value := valueOf.Field(cur).Interface()
 		var strValue = fmt.Sprintf("%v", value)
 		valueKind := reflect.TypeOf(value).Kind()
-		if valueKind == reflect.String {
+		if valueKind == reflect.String || valueKind == reflect.Interface {
 			strValue = fmt.Sprintf("'%v'", value)
 		}
 		if valueKind == reflect.Struct {
@@ -428,7 +428,7 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 			continue
 		}
 		var valueStr string
-		if value.Kind() == reflect.String || value.Kind() == reflect.Struct {
+		if value.Kind() == reflect.String || value.Kind() == reflect.Struct || value.Kind() == reflect.Interface {
 			valueStr = fmt.Sprintf("'%v'", value)
 		} else {
 			valueStr = fmt.Sprintf("%v", value)
