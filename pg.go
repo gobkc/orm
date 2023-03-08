@@ -429,6 +429,11 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 		} else {
 			valueStr = fmt.Sprintf("%v", value)
 		}
+		if value.Kind() == reflect.Struct {
+			if t, ok := value.Interface().(time.Time); ok {
+				valueStr = t.Format(`'2006-01-02 15:04:05'`)
+			}
+		}
 		sets = append(sets, fmt.Sprintf("%s=%s", fieldName, valueStr))
 	}
 	newSqlStr = fmt.Sprintf("UPDATE %s SET %s WHERE %s", tableName, strings.Join(sets, ","), sqlStr)
