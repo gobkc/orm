@@ -445,14 +445,23 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 }
 
 func outputSql(s string, args []any) {
-	for i, arg := range args {
-		v := fmt.Sprintf("%v", arg)
-		if reflect.TypeOf(arg).Kind() == reflect.String || reflect.TypeOf(arg).Kind() == reflect.Struct {
-			v = fmt.Sprintf("'%v'", arg)
+	rep, _ := regexp.Compile("\\$[0-9] ")
+	argsIndex := 0
+	argsLen := len(args)
+	newSqlStr := rep.ReplaceAllStringFunc(s, func(s string) string {
+		if argsIndex >= argsLen {
+			return s
 		}
-		s = strings.Replace(s, "?", v, i+1)
-	}
-	log.Printf("[ORM INFO]\t %s \n", s)
+		cur := args[argsIndex]
+		if reflect.TypeOf(cur).Kind() == reflect.String || reflect.TypeOf(cur).Kind() == reflect.Struct {
+			cur = fmt.Sprintf("'%v' ", cur)
+		} else {
+			cur = fmt.Sprintf("%v ", cur)
+		}
+		argsIndex++
+		return fmt.Sprintf("%v", cur)
+	})
+	log.Printf("[ORM INFO]\t %s \n", newSqlStr)
 }
 
 var savePriFieldMap = map[reflect.Kind]func(value reflect.Value, filedIdx int, lastId int64){
