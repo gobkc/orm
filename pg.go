@@ -380,7 +380,7 @@ func parseSqlIn(sqlStr string, args []any) (newSqlStr string, newArgs []any) {
 		}
 		newArgs = append(newArgs, arg)
 	}
-	rep, _ := regexp.Compile(" (IN|in|In|iN) \\$?")
+	rep, _ := regexp.Compile(" (IN|in|In|iN) \\$[0-9]*")
 	sliceIdx := 0
 	sliceArgLen := len(sliceArgs)
 	newSqlStr = rep.ReplaceAllStringFunc(sqlStr, func(s string) string {
