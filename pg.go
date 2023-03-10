@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"reflect"
@@ -311,9 +312,13 @@ func getKeysValues(dest any) *KV {
 				if t.IsZero() {
 					strValue = "DEFAULT"
 				} else {
-					strValue = fmt.Sprintf("'%v'", value)
+					strValue = t.Format(`'2006-01-02 15:04:05'`)
 				}
 			}
+		}
+		if valueKind == reflect.Slice {
+			sliceValue, _ := json.Marshal(value)
+			strValue = fmt.Sprintf("'%s'", string(sliceValue))
 		}
 		if valueKind == reflect.Pointer {
 			continue
@@ -440,6 +445,10 @@ func generateUpdate(sqlStr string, dest any) (newSqlStr string) {
 			if t, ok := value.Interface().(time.Time); ok {
 				valueStr = t.Format(`'2006-01-02 15:04:05'`)
 			}
+		}
+		if value.Kind() == reflect.Slice {
+			sliceValue, _ := json.Marshal(value.Interface())
+			valueStr = fmt.Sprintf("'%s'", string(sliceValue))
 		}
 		if value.Kind() == reflect.Pointer {
 			continue
