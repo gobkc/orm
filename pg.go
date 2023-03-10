@@ -350,7 +350,7 @@ var convertSlice2StringFuncMap = map[reflect.Kind]func(meta any) string{
 		return ""
 	},
 	reflect.Int: func(meta any) string {
-		if list := meta.([]int64); list != nil {
+		if list := meta.([]int); list != nil {
 			var l []string
 			for _, s := range list {
 				l = append(l, fmt.Sprintf("%v", s))
@@ -360,7 +360,7 @@ var convertSlice2StringFuncMap = map[reflect.Kind]func(meta any) string{
 		return ""
 	},
 	reflect.Float64: func(meta any) string {
-		if list := meta.([]int64); list != nil {
+		if list := meta.([]float64); list != nil {
 			var l []string
 			for _, s := range list {
 				l = append(l, fmt.Sprintf("%v", s))
