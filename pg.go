@@ -20,7 +20,7 @@ var ErrUpdateAllow = ErrInsertAllow
 func Query[T any](ctx context.Context, db *sql.DB, sqlStr string, args ...any) (t *T, err error) {
 	t = new(T)
 	sqlStr, args = parseSqlIn(sqlStr, args)
-	defer outputSql(sqlStr, args)
+	//defer outputSql(sqlStr, args)
 	stmt, err := db.PrepareContext(ctx, sqlStr)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func Insert[T any](ctx context.Context, db *sql.DB, dest []T) (newDest []T, err 
 		fields = kv.Key
 		values = fmt.Sprintf(`(%s)`, kv.Value)
 		sqlStr := fmt.Sprintf(`INSERT INTO %s(%s) VALUES %s RETURNING id`, tableName, fields, values)
-		outputSql(sqlStr, nil)
+		//outputSql(sqlStr, nil)
 		stmt, err := tx.Prepare(sqlStr)
 		if err != nil {
 			tx.Rollback()
@@ -131,7 +131,7 @@ func Update[T any](ctx context.Context, db *sql.DB, dest []T, where string, args
 			tx.Rollback()
 			return err
 		}
-		outputSql(rowSql, args)
+		//outputSql(rowSql, args)
 		_, err = stmt.ExecContext(ctx, args...)
 		if err != nil {
 			tx.Rollback()
@@ -152,7 +152,7 @@ func Delete[T any](ctx context.Context, db *sql.DB, where string, args ...any) e
 	}
 	where = generateDelete(where, t)
 	where, args = parseSqlIn(where, args)
-	defer outputSql(where, args)
+	//defer outputSql(where, args)
 	stmt, err := db.PrepareContext(ctx, where)
 	if err != nil {
 		return err
