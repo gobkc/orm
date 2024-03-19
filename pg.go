@@ -302,6 +302,9 @@ func getKeysValues(dest any) *KV {
 			continue
 		}
 		value := valueOf.Field(cur).Interface()
+		if value == nil {
+			value = ``
+		}
 		var strValue = fmt.Sprintf("%v", value)
 		valueKind := reflect.TypeOf(value).Kind()
 		if valueKind == reflect.String || valueKind == reflect.Interface {
