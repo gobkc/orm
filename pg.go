@@ -144,6 +144,15 @@ func Update[T any](ctx context.Context, db *sql.DB, dest []T, where string, args
 	return nil
 }
 
+func Exec(ctx context.Context, db *sql.DB, sqlStr string, args ...any) error {
+	stmt, err := db.PrepareContext(ctx, sqlStr)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.ExecContext(ctx, args...)
+	return err
+}
+
 func Delete[T any](ctx context.Context, db *sql.DB, where string, args ...any) error {
 	t := new(T)
 	typeOf := reflect.TypeOf(t).Elem()
